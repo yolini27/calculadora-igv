@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de IGV Perú</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6 text-balance">Calculadora de IGV Perú (18%)</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label for="montoBase" class="block text-sm font-semibold text-gray-700 mb-1">Monto Base</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                    </div>
+                    <input type="number" id="montoBase" placeholder="0.00" step="0.01" min="0"
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="igv" class="block text-sm font-semibold text-gray-700 mb-1">IGV 18%</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                    </div>
+                    <input type="number" id="igv" placeholder="0.00" step="0.01" min="0"
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="total" class="block text-sm font-semibold text-gray-700 mb-1">Total</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                    </div>
+                    <input type="number" id="total" placeholder="0.00" step="0.01" min="0"
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <button id="btnLimpiar" class="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 rounded-xl transition duration-200 cursor-pointer">
+            Limpiar campos
+        </button>
+    </div>
+
+    <script>
+        // Obtenemos los elementos
+        const txtMontoBase = document.getElementById('montoBase');
+        const txtIgv = document.getElementById('igv');
+        const txtTotal = document.getElementById('total');
+        const btnLimpiar = document.getElementById('btnLimpiar');
+
+        // Función para redondear correctamente a 2 decimales
+        const fijarDecimales = (num) => parseFloat(num.toFixed(2));
+
+        // 1. Si digitas en MONTO BASE
+        txtMontoBase.addEventListener('input', () => {
+            const base = parseFloat(txtMontoBase.value);
+            
+            if (!isNaN(base) && base > 0) {
+                const igv = base * 0.18;
+                const total = base + igv;
+                
+                txtIgv.value = fijarDecimales(igv);
+                txtTotal.value = fijarDecimales(total);
+            } else {
+                limpiarTodo();
+            }
+        });
+
+        // 2. Si digitas en IGV
+        txtIgv.addEventListener('input', () => {
+            const igv = parseFloat(txtIgv.value);
+            
+            if (!isNaN(igv) && igv > 0) {
+                const base = igv / 0.18;
+                const total = base + igv;
+                
+                txtMontoBase.value = fijarDecimales(base);
+                txtTotal.value = fijarDecimales(total);
+            } else {
+                limpiarTodo();
+            }
+        });
+
+        // 3. Si digitas en TOTAL
+        txtTotal.addEventListener('input', () => {
+            const total = parseFloat(txtTotal.value);
+            
+            if (!isNaN(total) && total > 0) {
+                const base = total / 1.18;
+                const igv = total - base;
+                
+                txtMontoBase.value = fijarDecimales(base);
+                txtIgv.value = fijarDecimales(igv);
+            } else {
+                limpiarTodo();
+            }
+        });
+
+        // Función para vaciar si borran el contenido manual
+        function limpiarTodo() {
+            if (txtMontoBase.value === '' && txtIgv.value === '' && txtTotal.value === '') {
+                txtMontoBase.value = '';
+                txtIgv.value = '';
+                txtTotal.value = '';
+            }
+        }
+
+        // Botón de limpieza manual
+        btnLimpiar.addEventListener('click', () => {
+            txtMontoBase.value = '';
+            txtIgv.value = '';
+            txtTotal.value = '';
+        });
+    </script>
+</body>
+</html>
