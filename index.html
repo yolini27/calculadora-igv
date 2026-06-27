@@ -4,16 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de IGV Perú</title>
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="logo.png?v=3">
+    <link rel="shortcut icon" type="image/png" href="logo.png?v=3">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=3">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=3">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=3">
+    <link rel="manifest" href="manifest.webmanifest?v=3">
     <meta name="theme-color" content="#f3f4f6">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
     <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-md">
+        <img src="logo.png" alt="Calculadora IGV" class="w-20 h-20 object-cover rounded-2xl mx-auto mb-4">
         <h1 class="text-2xl font-bold text-center text-gray-800 mb-6 text-balance">Calculadora de IGV Perú (18%)</h1>
         
         <div class="space-y-4">
@@ -21,7 +24,7 @@
                 <label for="montoBase" class="block text-sm font-semibold text-gray-700 mb-1">Monto Base</label>
                 <div class="relative rounded-xl shadow-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                        <span class="monedaSimbolo text-gray-500 text-lg font-medium">S/</span>
                     </div>
                     <input type="text" id="montoBase" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -32,7 +35,7 @@
                 <label for="igv" class="block text-sm font-semibold text-gray-700 mb-1">IGV 18%</label>
                 <div class="relative rounded-xl shadow-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                        <span class="monedaSimbolo text-gray-500 text-lg font-medium">S/</span>
                     </div>
                     <input type="text" id="igv" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -43,7 +46,7 @@
                 <label for="total" class="block text-sm font-semibold text-gray-700 mb-1">Total</label>
                 <div class="relative rounded-xl shadow-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 text-lg font-medium">S/</span>
+                        <span class="monedaSimbolo text-gray-500 text-lg font-medium">S/</span>
                     </div>
                     <input type="text" id="total" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -54,6 +57,10 @@
         <button id="btnLimpiar" class="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 rounded-xl transition duration-200 cursor-pointer">
             Limpiar campos
         </button>
+        <button id="btnMoneda" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition duration-200 cursor-pointer">
+            USD
+        </button>
+        <p id="estadoCambio" class="mt-2 text-center text-xs text-gray-500 min-h-4"></p>
     </div>
 
     <script>
@@ -62,6 +69,12 @@
         const txtIgv = document.getElementById('igv');
         const txtTotal = document.getElementById('total');
         const btnLimpiar = document.getElementById('btnLimpiar');
+        const btnMoneda = document.getElementById('btnMoneda');
+        const estadoCambio = document.getElementById('estadoCambio');
+        const simbolosMoneda = document.querySelectorAll('.monedaSimbolo');
+        const TIPO_CAMBIO_STORAGE = 'calculadoraIgvTipoCambioUsdPen';
+        let monedaActual = 'PEN';
+        let tipoCambioUsdPen = null;
 
         // Función para redondear correctamente a 2 decimales
         const fijarDecimales = (num) => parseFloat(num.toFixed(2));
@@ -101,6 +114,74 @@
         const formatearInput = (input) => {
             input.value = formatearMiles(input.value);
         };
+        const campos = [txtMontoBase, txtIgv, txtTotal];
+
+        async function obtenerTipoCambio() {
+            try {
+                const respuesta = await fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store' });
+                const data = await respuesta.json();
+                const rate = data?.rates?.PEN;
+
+                if (!respuesta.ok || typeof rate !== 'number' || rate <= 0) {
+                    throw new Error('Tipo de cambio no disponible');
+                }
+
+                tipoCambioUsdPen = rate;
+                localStorage.setItem(TIPO_CAMBIO_STORAGE, JSON.stringify({
+                    rate,
+                    fecha: new Date().toISOString()
+                }));
+                estadoCambio.textContent = `Tipo de cambio: 1 USD = ${rate.toFixed(3)} PEN`;
+                return rate;
+            } catch (error) {
+                const guardado = JSON.parse(localStorage.getItem(TIPO_CAMBIO_STORAGE) || 'null');
+
+                if (guardado?.rate > 0) {
+                    tipoCambioUsdPen = guardado.rate;
+                    estadoCambio.textContent = `Sin internet. Usando ultimo cambio: 1 USD = ${guardado.rate.toFixed(3)} PEN`;
+                    return guardado.rate;
+                }
+
+                estadoCambio.textContent = 'No hay tipo de cambio guardado.';
+                return null;
+            }
+        }
+
+        const actualizarMoneda = () => {
+            const simbolo = monedaActual === 'PEN' ? 'S/' : '$';
+            simbolosMoneda.forEach((elemento) => {
+                elemento.textContent = simbolo;
+            });
+            btnMoneda.textContent = monedaActual === 'PEN' ? 'USD' : 'PEN';
+        };
+
+        const convertirCampos = (rate) => {
+            campos.forEach((campo) => {
+                const valor = obtenerNumero(campo);
+
+                if (!isNaN(valor) && valor > 0) {
+                    const convertido = monedaActual === 'PEN' ? valor / rate : valor * rate;
+                    mostrarNumero(campo, convertido);
+                }
+            });
+        };
+
+        btnMoneda.addEventListener('click', async () => {
+            btnMoneda.disabled = true;
+            btnMoneda.textContent = '...';
+
+            const rate = tipoCambioUsdPen || await obtenerTipoCambio();
+
+            if (rate) {
+                convertirCampos(rate);
+                monedaActual = monedaActual === 'PEN' ? 'USD' : 'PEN';
+                actualizarMoneda();
+            } else {
+                actualizarMoneda();
+            }
+
+            btnMoneda.disabled = false;
+        });
 
         // 1. Si digitas en MONTO BASE
         txtMontoBase.addEventListener('input', () => {
