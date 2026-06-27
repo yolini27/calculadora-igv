@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de IGV Perú</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#f3f4f6">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -18,7 +23,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 text-lg font-medium">S/</span>
                     </div>
-                    <input type="number" id="montoBase" placeholder="0.00" step="0.01" min="0"
+                    <input type="text" id="montoBase" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
@@ -29,7 +34,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 text-lg font-medium">S/</span>
                     </div>
-                    <input type="number" id="igv" placeholder="0.00" step="0.01" min="0"
+                    <input type="text" id="igv" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
@@ -40,7 +45,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 text-lg font-medium">S/</span>
                     </div>
-                    <input type="number" id="total" placeholder="0.00" step="0.01" min="0"
+                    <input type="text" id="total" placeholder="0.00" inputmode="decimal" pattern="[0-9.,]*" autocomplete="off"
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
@@ -61,16 +66,53 @@
         // Función para redondear correctamente a 2 decimales
         const fijarDecimales = (num) => parseFloat(num.toFixed(2));
 
+        const limpiarNumero = (valor) => {
+            const sinComas = valor.replace(/,/g, '').replace(/[^\d.]/g, '');
+            const primerPunto = sinComas.indexOf('.');
+
+            if (primerPunto === -1) {
+                return sinComas;
+            }
+
+            return sinComas.slice(0, primerPunto + 1) + sinComas.slice(primerPunto + 1).replace(/\./g, '');
+        };
+
+        const formatearMiles = (valor) => {
+            const limpio = limpiarNumero(valor);
+
+            if (limpio === '') {
+                return '';
+            }
+
+            const [enteros, decimales] = limpio.split('.');
+            const enterosFormateados = enteros.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            if (limpio.includes('.')) {
+                return `${enterosFormateados || '0'}.${decimales ?? ''}`;
+            }
+
+            return enterosFormateados;
+        };
+
+        const obtenerNumero = (input) => parseFloat(limpiarNumero(input.value));
+        const mostrarNumero = (input, valor) => {
+            input.value = formatearMiles(String(fijarDecimales(valor)));
+        };
+        const formatearInput = (input) => {
+            input.value = formatearMiles(input.value);
+        };
+
         // 1. Si digitas en MONTO BASE
         txtMontoBase.addEventListener('input', () => {
-            const base = parseFloat(txtMontoBase.value);
+            formatearInput(txtMontoBase);
+            const base = obtenerNumero(txtMontoBase);
             
             if (!isNaN(base) && base > 0) {
                 const igv = base * 0.18;
                 const total = base + igv;
                 
-                txtIgv.value = fijarDecimales(igv);
-                txtTotal.value = fijarDecimales(total);
+                mostrarNumero(txtIgv, igv);
+                mostrarNumero(txtTotal, total);
             } else {
                 limpiarTodo();
             }
@@ -78,14 +120,15 @@
 
         // 2. Si digitas en IGV
         txtIgv.addEventListener('input', () => {
-            const igv = parseFloat(txtIgv.value);
+            formatearInput(txtIgv);
+            const igv = obtenerNumero(txtIgv);
             
             if (!isNaN(igv) && igv > 0) {
                 const base = igv / 0.18;
                 const total = base + igv;
                 
-                txtMontoBase.value = fijarDecimales(base);
-                txtTotal.value = fijarDecimales(total);
+                mostrarNumero(txtMontoBase, base);
+                mostrarNumero(txtTotal, total);
             } else {
                 limpiarTodo();
             }
@@ -93,14 +136,15 @@
 
         // 3. Si digitas en TOTAL
         txtTotal.addEventListener('input', () => {
-            const total = parseFloat(txtTotal.value);
+            formatearInput(txtTotal);
+            const total = obtenerNumero(txtTotal);
             
             if (!isNaN(total) && total > 0) {
                 const base = total / 1.18;
                 const igv = total - base;
                 
-                txtMontoBase.value = fijarDecimales(base);
-                txtIgv.value = fijarDecimales(igv);
+                mostrarNumero(txtMontoBase, base);
+                mostrarNumero(txtIgv, igv);
             } else {
                 limpiarTodo();
             }
